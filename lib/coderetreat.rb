@@ -6,6 +6,7 @@ require 'rspec'
 require 'active_support/core_ext/hash/indifferent_access'
 
 class CodeRetreatRunner
+    # Runs the runner
     def run(filename)
         STDOUT.puts 'Watching ' + filename
 
@@ -15,12 +16,14 @@ class CodeRetreatRunner
 
         connect('127.0.0.1', 8787)
 
+        # Receive data and check the test file indefinitely
         loop do
             test(filename) if changed(filename)
             receive
         end
     end
 
+    # Runs the tests in the test file
     def test(filename)
         begin
             RSpec.reset
@@ -35,11 +38,7 @@ class CodeRetreatRunner
             RSpec::Core::Runner.run([filename])
             data = json_formatter.output_hash
 
-            # Disable rspec interrupt, and disconnect our socket on close
-            Signal.trap('INT') do
-                disconnect
-                Kernel.exit(0)
-            end
+            setInterrupt
 
             symbols = {passed: '✓', pending: '.', failed: '✖'}
             STDOUT.puts data[:examples].map{ |example| ' ' + symbols[example[:status].to_sym] }.join('')
@@ -62,18 +61,31 @@ class CodeRetreatRunner
         end
     end
 
+    # Connects the TCP socket
     def connect(address, port)
         @client = TCPSocket.open address, port
+        setInterrupt
     end
 
+    # Disconnects the TCP socket
     def disconnect
         @client.close if @client
     end
 
+    # Disable rspec interrupt, and disconnect our socket on close
+    def setInterrupt
+        Signal.trap('INT') do
+            disconnect
+            Kernel.exit(0)
+        end
+    end
+
+    # Sends JSON through the TCP socket
     def send(data)
         @client.write JSON.generate(data)
     end
 
+    # Checks if the test file has changed (no more than once a second)
     def changed(filename)
         changed = false
         now = Time.now.to_f
@@ -94,6 +106,7 @@ class CodeRetreatRunner
         changed
     end
 
+    # Responds to a request
     def respond(data)
         payload = data[:payload]
         success = false
@@ -121,6 +134,7 @@ class CodeRetreatRunner
         send({ respondingTo: data[:action], success: success, message: message, payload: payload })
     end
 
+    # Recieve data from the TCP socket and buffers into JSON objects
     def receive
         @buffer ||= ''
         data = @client.recv(128)
