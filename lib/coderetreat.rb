@@ -103,7 +103,8 @@ class CodeRetreatRunner
             case data[:action]
             when 'tickBoard'
                 CodeRetreat.tickBoard(payload[:result])
-                success = true
+                payload = {}
+                success = false
             when 'tickCell'
                 payload[:generation]++
                 payload[:lives] = CodeRetreat.tickCell(payload[:result])
