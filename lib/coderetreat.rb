@@ -7,7 +7,11 @@ require 'active_support/core_ext/hash/indifferent_access'
 
 class CodeRetreatRunner
     def run(filename)
-        STDOUT.puts "Watching " + filename
+        STDOUT.puts 'Watching ' + filename
+
+        unless File.exists?(filename)
+            return STDOUT.puts 'Something went pretty badly wrong. Does that file exist?'
+        end
 
         loop do
             test(filename) if changed(filename)
