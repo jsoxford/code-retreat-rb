@@ -1,21 +1,28 @@
 class CodeRetreat
-  def truthy
+
+  def self.tickCell(cell)
+    return false
+  end
+
+  def self.tickBoard(board)
+    return board
+  end
+
+  def self.truthy
     true
   end
 
-  def falsey
-    true
+  def self.falsey
+    false
   end
 end
 
 RSpec.describe CodeRetreat do
   it "#truthy is true" do
-    cr = CodeRetreat.new
-    expect(cr.truthy).to eq(true)
+    expect(CodeRetreat.truthy).to eq(true)
   end
 
   it "#falsey is false" do
-    cr = CodeRetreat.new
-    expect(cr.falsey).to eq(false)
+    expect(CodeRetreat.falsey).to eq(false)
   end
 end
