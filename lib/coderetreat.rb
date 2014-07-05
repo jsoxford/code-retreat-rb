@@ -13,6 +13,8 @@ class CodeRetreatRunner
             return STDOUT.puts 'Something went pretty badly wrong. Does that file exist?'
         end
 
+        connect('127.0.0.1', 8787)
+
         loop do
             test(filename) if changed(filename)
             receive
@@ -33,6 +35,12 @@ class CodeRetreatRunner
             RSpec::Core::Runner.run([filename])
             data = json_formatter.output_hash
 
+            # Disable rspec interrupt, and disconnect our socket on close
+            Signal.trap('INT') do
+                disconnect
+                Kernel.exit(0)
+            end
+
             symbols = {passed: '✓', pending: '.', failed: '✖'}
             STDOUT.puts data[:examples].map{ |example| ' ' + symbols[example[:status].to_sym] }.join('')
 
@@ -40,10 +48,13 @@ class CodeRetreatRunner
                 STDOUT.puts "fail: #{example[:full_description]} -- error: #{example[:exception][:message]}"
             end
 
-            send('consumeTestResults', {
-                testsRun: data[:summary][:example_count],
-                testsFailed: data[:summary][:failure_count],
-                testsIgnored: data[:summary][:pending_count]
+            send({
+                action: 'consumeTestResults',
+                payload: {
+                    testsRun: data[:summary][:example_count],
+                    testsFailed: data[:summary][:failure_count],
+                    testsIgnored: data[:summary][:pending_count]
+                }
             })
 
         rescue Exception => e
@@ -51,14 +62,16 @@ class CodeRetreatRunner
         end
     end
 
-    def connect
-        @client ||= TCPSocket.open '127.0.0.1', 8787
-        @data = ''
+    def connect(address, port)
+        @client = TCPSocket.open address, port
     end
 
-    def send(action, payload)
-        connect
-        @client.write JSON.generate({ action: action, payload: payload })
+    def disconnect
+        @client.close if @client
+    end
+
+    def send(data)
+        @client.write JSON.generate(data)
     end
 
     def changed(filename)
@@ -82,37 +95,43 @@ class CodeRetreatRunner
     end
 
     def respond(data)
-        case data[:action]
-        when 'tickBoard'
-            [{
-                generation: data[:payload][:generation],
-                result: data[:payload][:result]
-            }, {
-                generation: data[:payload][:generation] + 1,
-                result: data[:payload][:result]
-            }];
-        when 'tickCell'
-            [{
-                generation: data[:payload][:generation],
-                result: data[:payload][:result]
-            }, {
-                generation: data[:payload][:generation] + 1,
-                result: data[:payload][:result]
-            }];
-        else
+        payload = data[:payload]
+        success = false
+        message = nil
+
+        begin
+            case data[:action]
+            when 'tickBoard'
+                CodeRetreat.tickBoard(payload[:result])
+                success = true
+            when 'tickCell'
+                payload[:generation]++
+                payload[:lives] = CodeRetreat.tickCell(payload[:result])
+                payload[:from] = payload[:result]
+                payload.delete(:result)
+                success = true
+            else
+                message = "I don't understand the action requested: #{data[:action]}"
+            end
+        rescue Exception => e
+            message = "Requested action had an error: #{data[:action]}"
         end
+
+        send({ respondingTo: data[:action], success: success, message: message, payload: payload })
     end
 
     def receive
-        connect
-        data = @client.recv(8)
+        @buffer ||= ''
+        data = @client.recv(128)
         unless data.nil?
-            @data += data
-            begin
-                respond(JSON.parse(@data).with_indifferent_access)
-                @data = ''
-            rescue JSON::ParserError => e
+            @buffer += data
+
+            jsons = @buffer.split("\n")
+            jsons.each do |json|
+                respond(JSON.parse(json).with_indifferent_access) rescue nil
             end
+
+            @buffer = jsons.last unless @buffer.match(/\n$/)
         end
     end
 end
