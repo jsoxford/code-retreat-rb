@@ -122,7 +122,7 @@ class CodeRetreatRunner
     begin
       case data[:action]
       when 'tickBoard'
-        CodeRetreat.tickBoard(payload[:result])
+        # CodeRetreat.tickBoard(payload[:result])
         payload = {}
         success = false
       when 'tickCell'

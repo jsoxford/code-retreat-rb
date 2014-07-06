@@ -4,10 +4,6 @@ class CodeRetreat
     return false
   end
 
-  def self.tickBoard(board)
-    return board
-  end
-
   def self.truthy
     true
   end
