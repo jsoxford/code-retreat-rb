@@ -101,7 +101,7 @@ class CodeRetreatRunner
     @fileHash ||= ''
 
     if now - @timestamp > 1
-      File.open(File.expand_path(filename, File.dirname(__FILE__) + '/..'), "r") do |file|
+      File.open(filename, "r") do |file|
         fileHash = Digest::SHA1.hexdigest(File.read(filename))
         changed = fileHash != @fileHash
         @fileHash = fileHash
