@@ -5,8 +5,8 @@ This client will watch your code for changes and print test results to the termi
 
 ## Setup
 
-- Install with `gem install coderetreat`
-- Run your code using `cr your_code.rb` (mac users will need to restart their terminal)
+- Install with `gem install coderetreat` (mac users will need to restart their terminal after this)
+- Run your code using `cr your_code.rb`
 
 
 ## Example
