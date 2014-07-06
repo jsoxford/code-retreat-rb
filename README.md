@@ -3,8 +3,8 @@ Code Retreat Game of Life runner
 
 ## Setup
 
-- Install with `gem install coderetreat`.
-- Run your code using `cr your_code.rb`
+- Install with `gem install coderetreat`
+- Run your code using `cr your_code.rb` (mac users will need to restart their terminal)
 - Try running `cr test.rb` for a simple example
 
 ## Requirements
