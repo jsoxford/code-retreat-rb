@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 if ARGV.length > 0
   file = ARGV[0]
+
 else
   STDOUT.puts 'You need to tell me what to watch!'
   STDOUT.puts 'Usage:'
@@ -8,5 +9,7 @@ else
   Kernel.exit(true)
 end
 
+configFile = 'http://jsoxford.com/cr.json'
 require_relative('../lib/coderetreat.rb')
-CodeRetreatRunner.new.run(file)
+config = ARGV.length >= 3 ? {host: ARGV[1], port: ARGV[2]} : CodeRetreatRunner.config(configFile)
+CodeRetreatRunner.new.run(file, config)

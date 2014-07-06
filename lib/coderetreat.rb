@@ -2,19 +2,26 @@
 require 'socket'
 require 'json'
 require 'digest'
-require 'rspec'
 require 'active_support/core_ext/hash/indifferent_access'
+require 'net/http'
+require 'rspec'
 
 class CodeRetreatRunner
+
+  def self.config(url)
+    JSON.parse(Net::HTTP.get(URI(url)))['endpoint'].with_indifferent_access
+  end
+
   # Runs the runner
-  def run(filename)
-    STDOUT.puts 'Watching ' + filename
+  def run(filename, config)
+    STDOUT.puts "Watching #{filename}"
 
     unless File.exists?(filename)
       return STDOUT.puts 'Something went pretty badly wrong. Does that file exist?'
     end
 
-    connect('127.0.0.1', 8787)
+    STDOUT.puts "Connecting to #{config[:host]}:#{config[:port]}"
+    connect(config)
 
     # Receive data and check the test file indefinitely
     loop do
@@ -62,8 +69,8 @@ class CodeRetreatRunner
   end
 
   # Connects the TCP socket
-  def connect(address, port)
-    @client = TCPSocket.open address, port
+  def connect(config)
+    @client = TCPSocket.open config[:host], config[:port]
     setInterrupt
   end
 
